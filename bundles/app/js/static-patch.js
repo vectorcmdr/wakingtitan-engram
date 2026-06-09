@@ -3,6 +3,39 @@
 (function() {
     'use strict';
 
+    // ---- DIAGNOSTIC: footer slider state ----
+    function diagSlider() {
+      var slider = document.getElementById('footerSlider');
+      var footer = document.getElementById('footer');
+      var glyphs = slider ? slider.querySelectorAll('.glyph') : [];
+      var visible = slider ? slider.querySelectorAll('.glyph.visible') : [];
+      var style = slider ? getComputedStyle(slider).display : 'N/A';
+      var footerStyle = footer ? getComputedStyle(footer).display : 'N/A';
+      var sliderInlineStyle = slider ? slider.getAttribute('style') : 'N/A';
+      var msg = [
+        '[DIAG] footer: display=' + footerStyle + ' bottom=' + (footer ? getComputedStyle(footer).bottom : 'N/A') + (footer ? ' z-index=' + getComputedStyle(footer).zIndex : ''),
+        '[DIAG] #footerSlider: display=' + style + ' exists=' + !!slider + ' inline="' + sliderInlineStyle + '"',
+        '[DIAG] glyphs: ' + glyphs.length + ' total, ' + visible.length + ' .visible',
+        '[DIAG] o object exists: ' + (typeof window.o !== 'undefined') + ' (var o is local in init, expected undefined)',
+        '[DIAG] terminal element: ' + !!document.getElementById('terminal'),
+      ];
+      msg.forEach(function(m) { console.log(m); });
+      // Force visible for testing
+      if (slider) {
+        slider.style.setProperty('display', 'block', 'important');
+        var g;
+        for (g = 0; g < glyphs.length && g < 5; g++) {
+          glyphs[g].classList.add('visible');
+        }
+        console.log('[DIAG] forced #footerSlider display=block and first 5 glyphs visible');
+      }
+    }
+    if (document.readyState === 'complete') {
+      setTimeout(diagSlider, 2000);
+    } else {
+      window.addEventListener('load', function() { setTimeout(diagSlider, 2000); });
+    }
+
     // ----- Answer lookup table -----
     // Populate with real answers as they're discovered.
     // "EMILY" is the placeholder for all puzzles.
