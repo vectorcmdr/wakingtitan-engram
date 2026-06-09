@@ -59,13 +59,8 @@
 
     // Wait for init() to bind its handler, then override
     function patch() {
-        var form = document.getElementById('argform');
-        if (!form) return;
-
-        // Unbind all jQuery submit handlers on #argform
-        $('#argform').off('submit');
-
-        // Bind our own
+        // Remove the original handler (delegated on main) and bind our own
+        $('main').off('submit', '#argform');
         $('main').on('submit', '#argform', function(e) {
             e.preventDefault();
 
