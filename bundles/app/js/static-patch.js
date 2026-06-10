@@ -255,7 +255,7 @@
             '  CALIBRATION        Calibration report',
             '  CLEAR              Clear the terminal',
             '  DISPLAY [dataset]  Display a dataset',
-            '  EXIT               No effect',
+            '  EXIT               Close the terminal',
             '  GLASS              Lore',
             '  GLYPHS             Lore',
             '  HELLO              Wakeup status',
@@ -857,25 +857,24 @@
         $('html, body').css('overflow', 'hidden');
 
         $term.css({
-            'z-index': '999',
             'position': 'absolute',
-            'top': '0px',
+            'top': '35px',
             'left': '0px',
             'width': '100%',
-            'height': '100%',
-            'background': 'rgba(0,0,0,0.85)',
-            'color': '#0f0',
-            'font-family': '"Codystar", monospace',
-            'font-size': '18px',
-            'line-height': '24px',
-            'padding': '20px',
+            'height': 'calc(100% - 300px)',
+            'background': 'transparent',
+            'color': '#fff',
+            'font-family': '"Codystar", sans-serif',
+            'font-size': '25px',
+            'line-height': '25px',
+            'padding': '0 30px',
             'overflow-y': 'auto',
             'white-space': 'pre-wrap',
             'box-sizing': 'border-box'
         });
 
         $term.html(
-            '<div style="font-size:24px;color:#0f0;text-align:center;padding-top:20vh">' +
+            '<div style="font-size:30px;color:#fff;text-align:center;padding-top:15vh">' +
             'BOOT SEQUENCE COMPLETED<br><br>' +
             'WELCOME CITIZEN SCIENTIST<br><br>' +
             '</div>'
@@ -905,7 +904,7 @@
             var isClear = cmd.toLowerCase() === 'clear';
 
             if (!isClear) {
-                $term.append('<div style="color:#888">&gt; ' + $('<span/>').text(cmd).html() + '</div>');
+                $term.append('<div style="color:#fff">&gt; ' + $('<span/>').text(cmd).html() + '</div>');
             }
 
             var parts = cmd.split(' ');
@@ -916,9 +915,16 @@
             var resp = getTerminalResponse(parsed);
             if (resp.data && resp.data.message) {
                 resp.data.message.forEach(function(m) {
-                    var color = resp.success ? '#0f0' : '#c1003e';
+                    var color = resp.success ? '#bbb' : '#c1003e';
                     $term.append('<div style="color:' + color + '">' + $('<span/>').text(m).html() + '</div>');
                 });
+            }
+
+            // EXIT: close terminal, return to main page
+            if (resp.data && resp.data.exit) {
+                $term.hide();
+                $('html, body').css('overflow', '');
+                return;
             }
 
             buf = '';
@@ -926,12 +932,11 @@
             if (isClear) {
                 // Clear: rebuild terminal with just the greeting
                 $term.empty().append(
-                    '<div style="font-size:24px;color:#0f0;text-align:center;padding-top:20vh">' +
+                    '<div style="font-size:30px;color:#fff;text-align:center;padding-top:15vh">' +
                     'BOOT SEQUENCE COMPLETED<br><br>' +
                     'WELCOME CITIZEN SCIENTIST<br><br>' +
                     '</div>'
                 );
-                $term.find('> div:first-child').css('padding-top', '20vh');
             }
 
             render();
