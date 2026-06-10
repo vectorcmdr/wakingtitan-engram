@@ -858,16 +858,16 @@
 
         $term.css({
             'position': 'absolute',
-            'top': '35px',
-            'left': '0px',
+            'top': '0',
+            'left': '0',
             'width': '100%',
-            'height': 'calc(100% - 300px)',
-            'background': 'transparent',
+            'height': '100%',
+            'background': 'rgba(0,0,0,0.85)',
             'color': '#fff',
             'font-family': '"Codystar", sans-serif',
             'font-size': '25px',
             'line-height': '25px',
-            'padding': '0 30px',
+            'padding': '35px 30px 0',
             'overflow-y': 'auto',
             'white-space': 'pre-wrap',
             'box-sizing': 'border-box'
