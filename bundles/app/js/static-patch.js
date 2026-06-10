@@ -672,37 +672,58 @@
         }
     }
 
-    // ----- Enable the existing jQuery Terminal instance -----
+    // ----- Recreate the terminal (destroy old, create fresh with enabled:true) -----
     function enableTerminal() {
         var $term = $('#terminal');
         if (!$term.length) return;
 
-        $term.show().css('z-index', 2);
+        // Grab greeting before destroying
+        var intro = $term.data('intro') || 'Boot sequence completed\nWelcome Citizen Scientist';
 
-        var term;
-        try {
-            // Getter via .terminal() with no args
-            term = $term.terminal();
-        } catch(e) {
-            try {
-                // Fallback: data storage
-                term = $term.data('terminal');
-            } catch(e2) {
-                term = null;
-            }
+        // Destroy existing terminal instance (if any)
+        var existing;
+        try { existing = $term.data('terminal'); } catch(e) { existing = null; }
+        if (!existing) { try { existing = $term.terminal(); } catch(e) { existing = null; } }
+        if (existing && typeof existing.destroy === 'function') {
+            try { existing.destroy(); } catch(e) {}
         }
 
-        if (term) {
-            try {
-                if (typeof term.enable === 'function') term.enable();
-                if (typeof term.resize === 'function') term.resize();
-                if (typeof term.focus === 'function') {
-                    setTimeout(function() { term.focus(); }, 100);
+        // Clean slate
+        $term.removeData('terminal').empty().removeClass('terminal').show().css('z-index', 2);
+
+        // Create fresh terminal that's enabled immediately
+        $term.terminal(function(command, t) {
+            if (!t.parser) {
+                t.parser = function(cmd) {
+                    var parts = cmd.split(' ');
+                    return {
+                        command: parts.shift().toLowerCase(),
+                        param: parts.filter(function(p) { return p.indexOf('-') !== 0; }).map(function(p) { return p.toLowerCase(); })
+                    };
+                };
+            }
+            var parsed = t.parser(command);
+            t.pause();
+            $.ajax({
+                url: '/terminal',
+                data: parsed,
+                method: 'POST',
+                dataType: 'json',
+                success: function(r) {
+                    if (r.success && r.data && r.data.message) {
+                        r.data.message.forEach(function(m) { t.echo(m); });
+                    } else if (r.data && r.data.message) {
+                        r.data.message.forEach(function(m) { t.error(m); });
+                    }
+                    t.echo(' ');
+                    t.resume();
                 }
-            } catch(e) {
-                // Silently fail
-            }
-        }
+            });
+        }, {
+            greetings: intro + '\n ',
+            enabled: true
+        });
+        setTimeout(function() { $term.find('textarea').focus(); }, 200);
     }
 
     // ----- Terminal AJAX interceptor (safety net for any remaining AJAX calls) -----
