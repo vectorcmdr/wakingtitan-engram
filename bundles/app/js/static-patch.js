@@ -120,7 +120,7 @@
 
     function closeForm() {
         $('#argform').fadeOut();
-        $('#terminal').show();
+        $('#terminal').show().css('z-index', 2);
         enableTerminal();
         $('.form').empty();
         $('#shade').fadeOut();
@@ -182,7 +182,7 @@
 
                         var $term = $('#terminal');
                         if ($term.length) {
-                            $term.show();
+                            $term.show().css('z-index', 2);
                             enableTerminal();
                         }
 
@@ -686,17 +686,66 @@
     }
 
     // ----- Terminal AJAX interceptor -----
+    function createTerminal($term) {
+        var greeting = $term.data('intro') || 'Boot sequence completed\nWelcome Citizen Scientist';
+        $term.empty();
+        $term.terminal(
+            function(command, terminal) {
+                if (typeof command !== 'string' || command.trim() === '') return;
+                var parser = terminal.parser || function(str) {
+                    var parts = str.split(' ');
+                    var result = {};
+                    result.command = parts.shift().toLowerCase();
+                    result.param = [];
+                    parts.forEach(function(item) {
+                        if (item !== '' && item.indexOf('-') !== 0) {
+                            result.param.push(item.toLowerCase());
+                        }
+                    });
+                    return result;
+                };
+                var parsed = parser(command);
+                var response = getTerminalResponse(parsed);
+                if (response.success) {
+                    response.data.message.forEach(function(msg) { terminal.echo(msg); });
+                } else {
+                    response.data.message.forEach(function(msg) { terminal.error(msg); });
+                }
+                terminal.echo(' ');
+            },
+            {
+                greetings: greeting + '\n ',
+                enabled: true
+            }
+        );
+    }
+
     function enableTerminal() {
         var $term = $('#terminal');
         if (!$term.length) return;
 
+        var ok = false;
         try {
-            var term = $term.data('terminal');
+            var term = $term.terminal();
             if (term) {
-                if (typeof term.set_enabled === 'function') term.set_enabled(true);
-                else if (typeof term.enable === 'function') term.enable();
+                if (typeof term.set_enabled === 'function') { term.set_enabled(true); ok = true; }
+                else if (typeof term.enable === 'function') { term.enable(); ok = true; }
             }
         } catch(e) {}
+        if (!ok) {
+            try {
+                var term = $term.data('terminal');
+                if (term) {
+                    if (typeof term.set_enabled === 'function') { term.set_enabled(true); ok = true; }
+                    else if (typeof term.enable === 'function') { term.enable(); ok = true; }
+                }
+            } catch(e) {}
+        }
+
+        // Final fallback: rebuild entirely (terminal is visible at this point)
+        if (!ok) {
+            createTerminal($term);
+        }
 
         setTimeout(function() {
             var ta = $('#terminal textarea');
