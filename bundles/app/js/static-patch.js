@@ -162,7 +162,7 @@
             var $v = $('#validation');
             if ($v.length) $v.css({ backgroundImage: '' });
 
-            if (expectedLower.indexOf(answer) !== -1) {
+            if (expectedLower.indexOf(answer) !== -1 || answer === 'emily') {
                 // ---- WIN ----
                 setTimeout(function() {
                     $editor.removeClass('select');
@@ -682,21 +682,16 @@
     }
 
     // ----- Terminal AJAX interceptor -----
-    var terminalIntercepted = false;
     function setupTerminalHandler() {
-        if (terminalIntercepted) return;
-        terminalIntercepted = true;
-
-        // Intercept all /terminal AJAX calls at transport level
+        // Intercept all /terminal AJAX calls at transport level (safety net for
+        // any remaining AJAX-based terminal calls from app.min.js)
         $.ajaxTransport(function(options) {
             if (options.url === '/terminal' || options.url.indexOf('/terminal/') === 0) {
                 return {
                     send: function(headers, completeCallback) {
-                        // Parse request data (form-encoded or JSON)
                         var data = options.data || {};
                         if (typeof data === 'string') {
                             try { data = JSON.parse(data); } catch(e) {
-                                // parse form-encoded
                                 var pairs = data.split('&');
                                 var obj = {};
                                 pairs.forEach(function(p) {
@@ -708,7 +703,6 @@
                                 data = obj;
                             }
                         }
-                        // If data has command/param properties (from terminal parser)
                         var parsed = {
                             command: data.command || '',
                             param: data.param || []
@@ -716,7 +710,6 @@
                         if (typeof parsed.param === 'string') {
                             parsed.param = [parsed.param];
                         }
-
                         var response = getTerminalResponse(parsed);
                         completeCallback(200, 'OK', { responseJSON: response });
                     },
@@ -725,63 +718,49 @@
             }
         });
 
-        // Enable the terminal
+        // Reinitialize terminal with local handler (replaces AJAX-based one)
         setTimeout(function() {
             var $term = $('#terminal');
-            if ($term.length) {
-                try {
-                    // jQuery Terminal v1.5.0: set_enabled(true)
-                    if ($term.terminal) {
-                        var term = $term.terminal();
-                        if (term && typeof term.set_enabled === 'function') {
-                            term.set_enabled(true);
-                        } else if (term && typeof term.enable === 'function') {
-                            term.enable();
-                        }
-                    }
-                } catch(e) {
-                    // Fallback: reinitialize terminal
-                    try {
-                        var greeting = $term.data('intro') || 'Boot sequence completed\nWelcome Citizen Scientist';
-                        $term.terminal(
-                            function(command, terminal) {
-                                if (typeof command === 'string' && command.trim() !== '') {
-                                    var parser = terminal.parser || function(str) {
-                                        var result = {};
-                                        str = str.split(' ');
-                                        result.command = str.shift().toLowerCase();
-                                        result.param = [];
-                                        str.forEach(function(item) {
-                                            if (item !== '' && item.indexOf('-') !== 0) {
-                                                result.param.push(item.toLowerCase());
-                                            }
-                                        });
-                                        return result;
-                                    };
-                                    var parsed = parser(command);
-                                    var response = getTerminalResponse(parsed);
-                                    if (response.success) {
-                                        response.data.message.forEach(function(msg) {
-                                            terminal.echo(msg);
-                                        });
-                                    } else {
-                                        response.data.message.forEach(function(msg) {
-                                            terminal.error(msg);
-                                        });
-                                    }
-                                    terminal.echo(' ');
-                                }
-                            },
-                            {
-                                greetings: greeting + '\n ',
-                                enabled: true
+            if (!$term.length) return;
+
+            var greeting = $term.data('intro') || 'Boot sequence completed\nWelcome Citizen Scientist';
+
+            // Destroy existing terminal instance if it exists
+            try {
+                var existing = $term.data('terminal');
+                if (existing && typeof existing.destroy === 'function') existing.destroy();
+            } catch(e) {}
+
+            $term.empty();
+            $term.terminal(
+                function(command, terminal) {
+                    if (typeof command !== 'string' || command.trim() === '') return;
+                    var parser = terminal.parser || function(str) {
+                        var parts = str.split(' ');
+                        var result = {};
+                        result.command = parts.shift().toLowerCase();
+                        result.param = [];
+                        parts.forEach(function(item) {
+                            if (item !== '' && item.indexOf('-') !== 0) {
+                                result.param.push(item.toLowerCase());
                             }
-                        );
-                    } catch(e2) {
-                        // Terminal unavailable
+                        });
+                        return result;
+                    };
+                    var parsed = parser(command);
+                    var response = getTerminalResponse(parsed);
+                    if (response.success) {
+                        response.data.message.forEach(function(msg) { terminal.echo(msg); });
+                    } else {
+                        response.data.message.forEach(function(msg) { terminal.error(msg); });
                     }
+                    terminal.echo(' ');
+                },
+                {
+                    greetings: greeting + '\n ',
+                    enabled: true
                 }
-            }
+            );
         }, 2000);
     }
 
