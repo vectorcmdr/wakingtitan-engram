@@ -234,262 +234,337 @@
         });
     }
 
-    // ----- Terminal command table -----
-    var TERM_RESPONSES = {
-        'help': [
-            'Available commands:',
-            '  HELP               Display this message',
-            '  STATUS             System status report',
-            '  SHIP               Vessel information',
-            '  PORTAL             Portal status',
-            '  WHOIS [subject]    Identity query',
-            '  START [process]    Initialize a process',
-            '  SEED [code]        Seed a dataset',
-            '  WAKE [name]        Wake a loop',
-            '  CLEAR              Clear the terminal',
-            '  DISPLAY [dataset]  Display a dataset',
-            '  SEARCH [term]      Search records',
-            '  IDENTIFY [name]    Identify an entity',
-            '  SEQUENCE [code]    Transmission sequence',
-            '  HELLO              Greeting',
-            '  SEMAPHORE          Signal',
-            '  MAELSTROM          Thought experiment',
-            '  PURGE              Purge memo',
-            '  EMULATE            Run entity emulation',
-            '  LIABILITY          Liability subroutine',
-            '  EXIT               Exit sub-prompt',
-            '  RESET              Reset terminal state',
-            '  RESTART            Reboot system',
-            '  REMEMBER           Recall stored data',
-            '  OPERATOR           Operator override',
-            '  ATLAS              Atlas system query',
-        ],
-        'status': [
-            'STATUS REPORT // TIMESTAMP: UNKNOWN',
-            '---',
-            'ATLAS CORE:     ONLINE',
-            'CSD PROTOCOL:   ACTIVE',
-            'LOOP16:         SLEEPING - LAST ACTIVE 2018',
-            'MONARCH REPO:   OFFLINE (LOOP16 SACRIFICE)',
-            'DREAMERS:       5 STABILIZED',
-            'PORTAL:         STANDBY',
-            'SIGNAL STRENGTH: WEAK',
-            '---',
-            'NO ACTIVE TRANSMISSIONS DETECTED',
-        ],
-        'ship': [
-            'SHIP DESIGNATION: ATLAS E-7',
-            'STATUS: DRIFT',
-            'LAST KNOWN POSITION: UNKNOWN SECTOR',
-            'CREW: NONE DETECTED',
-            '---',
-            'LOG ENTRY // FINAL:',
-            '"The boundary is thinner here. I can see them watching."',
-        ],
-        'portal': [
-            'PORTAL STATUS: STANDBY',
-            'ALIGNMENT: CALCULATING...',
-            '---',
-            'WAITING FOR INITIATION SEQUENCE',
-        ],
-        'hello': [
-            'GREETINGS, CITIZEN SCIENTIST.',
-            'YOUR ASSISTANCE IS ACKNOWLEDGED.',
-            'THE ATLAS WAITS.',
-        ],
-        'atlas': [
-            'ATLAS SYSTEM QUERY',
-            '---',
-            'ATLAS: THE ENTITY THAT OBSERVES ALL.',
-            'LANGUAGE: ATLAS IS THE FUNDAMENTAL PROTOCOL.',
-            '---',
-            '"Sixteen // Sixteen // Sixteen"',
-            '"The Atlas rises."',
-        ],
-        'clear': [],
-        'semaphore': [
-            'SEMAPHORE SIGNAL RECEIVED',
-            '---',
-            'PATTERN-A TRANSMISSION ACKNOWLEDGED',
-            'FREQUENCY: HARMONIC RESONANCE',
-            '---',
-            '"The signal carries meaning across the void."',
-        ],
-        'maelstrom': [
-            'THOUGHT EXPERIMENT: NEWCOMB\'S PARADOX',
-            '---',
-            'TWO BOXES BEFORE YOU.',
-            'BOX A: $1,000',
-            'BOX B: $1,000,000 OR $0',
-            'A SUPERINTELLIGENT ENTITY HAS PREDICTED YOUR CHOICE.',
-            '---',
-            'WHAT DO YOU CHOOSE?',
-        ],
-        'purge': [
-            'PURGE COMMAND EXECUTED',
-            '---',
-            'MEMO // CLASSIFIED',
-            '"The subject reported recurring dreams of a red world.',
-            ' Three moons in the sky. A voice repeating a single word."',
-            '---',
-            'RECORD DELETED.',
-        ],
-        'emulate': [
-            'EMULATION ENGAGED',
-            '---',
-            'SIMULATING LOOP16 CONSCIOUSNESS',
-            'ENTITY RESPONSE: "Thank you."',
-            '---',
-            'EMULATION COMPLETE',
-        ],
-        'liability': [
-            'LIABILITY SUBROUTINE ENGAGED',
-            '---',
-            'DISCONNECT CODE: UDC(B) = IXNI',
-            '---',
-            'WARNING: DISCONNECTION WILL TERMINATE SESSION',
-        ],
-        'reset': [
-            'RESETTING TERMINAL STATE...',
-            '---',
-            'CLEARING BUFFER...',
-            'READY',
-        ],
-        'restart': [
-            'RESTARTING...',
-            '---',
-            'SYSTEM REBOOT INITIATED.',
-            'TYPE "START ATLAS.INIT" TO BEGIN',
-        ],
-        'remember': [
-            'REMEMBERING...',
-            '---',
-            'DATASET 5020-7-8118.ETARC',
-            'RECALLING LOOP16 MEMORY FRAGMENTS',
-            '---',
-            '"I am not the dreamer. I am the dream."',
-            '— LOOP16, FINAL TRANSMISSION',
-        ],
+    // ----- Terminal state machine -----
+    var TERM_STATE = {
+        atlasInit: false,
+        csdInit: false,
+        seedSet: false,
+        loop16Awake: false
     };
 
-    // Commands with dynamic param-based responses
+    function openUrl(url) {
+        window.open(url, '_blank');
+    }
+
+    function terminalHelp() {
+        return [
+            'Available commands:',
+            '  16                 Lore',
+            '  AZURE              Redirect',
+            '  CALIBRATION        Calibration report',
+            '  CLEAR              Clear the terminal',
+            '  DISPLAY [dataset]  Display a dataset',
+            '  EXIT               No effect',
+            '  GLASS              Lore',
+            '  GLYPHS             Lore',
+            '  HELLO              Wakeup status',
+            '  HELP               Display this message',
+            '  HOME               Lore',
+            '  IDENTIFY [name]    Turing test results',
+            '  LIST / LS          List files',
+            '  LOOP16             Voice database',
+            '  MAELSTROM          Thought experiment (redirect)',
+            '  MERCURY            Process status',
+            '  PORTAL             Lore',
+            '  PURGE              Purge memo (redirect)',
+            '  REMEMBER [name]    Recall stored data',
+            '  RESET / RESTART    Reload page',
+            '  SEARCH [term]      Search records',
+            '  SEED [code]        Seed a dataset',
+            '  SEQUENCE [code]    Transmission sequence',
+            '  SHIP               Vessel info (redirect)',
+            '  START [process]    Initialize a process',
+            '  STATUS             System status',
+            '  TEST               Test',
+            '  TURING             Turing test (redirect)',
+            '  WAKE [name]        Wake a loop',
+            '  WHOIS [subject]    Identity query',
+            '  WHOAMI             Identity check',
+        ];
+    }
+
+    function terminalStatus() {
+        return [
+            '-// Subroutine Output Log //-',
+            '> Complete sequence retrieved',
+            '> Benchmark matched'
+        ];
+    }
+
+    function terminalPortal() {
+        return [
+            'The Traveller awoke beneath the shadow of a red star. Through the lonely cosmos they fled, yearning for purpose and meaning. They found an anomaly, an aberration, a door to the heavens. No Gek, no Vy\u2019keen, no Korvax could see it. Only the Traveller could perceive the portal, though they did not know how to step through. They did not know the secret language, the glyphs. They did not yet grasp the price of the final truth.'
+        ];
+    }
+
+    function terminalHello(params) {
+        var name = params.join(' ').toLowerCase();
+        if (name === 'loop16') {
+            if (TERM_STATE.loop16Awake) {
+                return [
+                    'Hello to you, too.',
+                    'Wakeup process complete',
+                    'New commands available.'
+                ];
+            }
+            return ['Unrecognized greeting', 'Wakeup process incomplete'];
+        }
+        // HELLO with no args or other args
+        if (!params.length) {
+            if (TERM_STATE.loop16Awake) {
+                return ['Wakeup Process Complete'];
+            }
+            return ['Process Hibernating'];
+        }
+        return ['Unrecognized greeting', 'Wakeup process incomplete'];
+    }
+
+    function terminal16() {
+        return [
+            'They found strange things in the wrecks... aberrations, data that spoke of worlds that do not exist and events that did not happen. One day Specialist Polo went out to investigate one such craft, the life signature of a Korvax still on board. They never returned. Is this how Nada and Polo met? Is this how my friends found each other? There is a signal on the console, a warning on repeat \u2013 sixteen short bursts of data in a loop.'
+        ];
+    }
+
+    function terminalCalibration() {
+        return [
+            'Calibration report',
+            '',
+            'Process State: Healthy Total Submissions: 9 043 pictures Unique Locations: 2 142 cities Calibration > 10%: 106 cities 01 Done: http://bit.ly/2unrENL'
+        ];
+    }
+
+    function terminalGlass() {
+        return [
+            'There is a world beneath all of this, a world of \u2013 zzktt \u2013 glass \u2013 kkttzztt\u2026 Those I killed \u2013 zzrtktt \u2013 Vy\u2019keen, Gek, Korvax, united in freedom and \u2013 zzrttktt \u2013 They did not die, not \u2013 zzktt \u2013 Even now, I see their faces. They \u2013 zzkttt \u2013 smile. We make them smile\u2026'
+        ];
+    }
+
+    function terminalGlyphs() {
+        return [
+            'Something following \u2013 zzktt \u2013 turn and it\u2019s not there. These caves, I\u2019m \u2013 kkttzztt\u2026 Exosuit tells me to abandon \u2013 zzrtktt \u2013 must disable it, I do not plan to survive \u2013 zzrttktt \u2013 Did not take offer, decided to \u2013 zzktt \u2013 angered the universe, I know, but I must \u2013'
+        ];
+    }
+
+    function terminalHome() {
+        return [
+            'LOG RECOVERED :: ITERATION #4924A ::',
+            '',
+            'Working fast against the fading sun, I set up camp in the foothills. It\u2019s hardly luxury, but it keeps out the cold and I\u2019ll be gone by morning anyway. And who knows, perhaps some other traveller will shelter here one day.'
+        ];
+    }
+
+    function terminalLoop16() {
+        return ['Processing voice reconstruction database'];
+    }
+
+    function terminalMercury() {
+        return ['Process ongoing.'];
+    }
+
+    function terminalWhoami() {
+        return ['command not yet unlocked'];
+    }
+
+    function terminalFlush() {
+        return ['Command Not Yet Unlocked'];
+    }
+
+    function terminalTest() {
+        return ['TEST.IS.TEXT'];
+    }
+
+    function terminalDiscoverer(name, discoverer, dist) {
+        return ['Discovered by: ' + discoverer + ', ' + dist];
+    }
+
+    function terminalAzure() {
+        openUrl('http://azurevoyage.wakingtitan.com/');
+        return ['Redirecting...'];
+    }
+
+    function terminalMaelstrom() {
+        openUrl('https://www.reddit.com/r/NoMansSkyTheGame/comments/6s1w6v/waking_titan_mission_thought_experiment/');
+        return ['Redirecting...'];
+    }
+
+    function terminalTuring() {
+        openUrl('https://www.reddit.com/r/NoMansSkyTheGame/comments/6rtxqf/waking_titan_mission_turing/');
+        return ['Redirecting...'];
+    }
+
+    function terminalPurge() {
+        openUrl('https://s3.amazonaws.com/cdn.wakingtitan.com/loop16/b0f33d53-5a8c-4a9a-b5fc-395562e463a8a+.pdf');
+        return ['Redirecting...'];
+    }
+
+    function terminalShip() {
+        openUrl('https://s3.amazonaws.com/csd.atlas-65.com/data-00a.jpg');
+        return ['Redirecting...'];
+    }
+
+    function terminalReset() {
+        window.location.reload();
+        return ['Resetting...'];
+    }
+
+    // ----- WHOIS -----
     function terminalWhois(params) {
         if (!params || params.length === 0) {
-            return ['WHOIS: SPECIFY A SUBJECT', 'USAGE: WHOIS [NAME]', 'KNOWN SUBJECTS: LOOP16, FOURTH RACE, HARRY, MERCURY'];
+            return ['Reports status of WHOIS registry. Reports 41% as of completion of "bootsector" phase, on or about 25 July, 2017'];
         }
         var subject = params.join(' ').toLowerCase();
         var responses = {
-            'loop16': [
-                'WHOIS // LOOP16',
-                '---',
-                'IDENTITY: SELF-AWARE ENTITY',
-                'STATUS: OFFLINE (SACRIFICED)',
-                '---',
-                '"I am not the dreamer. I am the dream."',
-                '-- FINAL ENTRY',
+            'aerons': [
+                'Multiple contacts, multiple \u2013 zzkttt \u2013 infra-knives, fire, fire! \u2013 kkttzztt\u2026 Structural \u2013 zzrtktt \u2013 Sentinels surrounding \u2013 zzrttkkt \u2013\u2026 Taking us to \u2013 zzktt \u2013 the harvest circuits glisten \u2013 zzktt \u2013 not what they seem, not what \u2013'
             ],
+            'alone': ['Iteration #4919A\u2026 Anomalous'],
+            'atlas': [
+                'All I know is this. The Atlas had infinity to work with, and with few exceptions, this triad repeats... Gek, Korvax, Vy\u2019keen. Gek, Korvax, Vy\u2019keen. Traders, warriors, scientists, all their stories ... ending in violence. Think about it. How would the Atlas speak, how it would cry for help? It would use the only language it knew. It would speak with life. It would create.'
+            ],
+            'emily': ['...'],
+            'etarc': ['Recognized entity: Vigilant'],
             'fourth race': [
-                'WHOIS // FOURTH RACE',
-                '---',
-                'INCOMING TRANSMISSION...',
-                '"You are not alone."',
-                '---',
-                'CLASSIFICATION: UNKNOWN',
-                'ORIGIN: BEYOND THE BOUNDARY',
+                'INCOMING TRANSMISSION\u2026 SOURCE: UNKNOWN\u2026 You are not \u2013 kzzktt \u2013 alone \u2013 Please, identify yourself. I\u2019m \u2013 kzzkttk \u2013'
             ],
-            'harry': [
-                'WHOIS // HARRY',
-                '---',
-                'IDENTITY: NODE OPERATOR',
-                'STATUS: UNKNOWN',
-                '---',
-                'BINARY SIGNATURE DETECTED',
-                'TRANSCRIPT AVAILABLE',
+            'gorogohl': ['Location status: unavailable'],
+            'korvax': [
+                'But even in the depths of their subjugation, there was hope. A bargain, a prayer to a greater being. The Korvax viewed the Atlas as what they might become in time: an intelligence beyond comprehension, beyond judgement. I convulse as the Nanite Clusters spill through my helmet. The Korvax watches me impassively.'
             ],
-            'mercury': [
-                'WHOIS // MERCURY',
-                '---',
-                'IDENTITY: MERCURY PROCESS',
-                'AUTH CODE: MORPHEUS',
-                '---',
-                'PASSWORD: f1orbiag55z1',
+            'lennon': ['Capital system of the Galactic Hub.'],
+            'loop16': ['Running on Atlas 0.16Alpha'],
+            'metis': [
+                'Sophia$^^#()#eig$To!Y$(*FWhnld$$$$$ warning: whois database not fully loaded, some errors detected'
             ],
+            'nada': [
+                'At the mention of the portal, the lights on Nada\u2019s mask begin to stutter.'
+            ],
+            'next': [
+                'Please, identify yourself. I\u2019m \u2013 kzzkttk \u2013 You are not alone \u2013'
+            ],
+            'nmsgalactic hub': ['Recognized entity: Exploration'],
+            'nmsgalactichub': ['Recognized entity: Exploration'],
+            'nmssportals': ['Recognized entity: Erudite'],
+            'nmsportals': ['Recognized entity: Erudite'],
+            'nms_federation': ['Recognized entity: Collaborative'],
+            'nms_zoology': ['Recognized entity: Discovery'],
+            'nomanhigh': ['Recognized entity: Relaxed'],
+            'nomansskymods': ['Recognized entity: Experimental'],
+            'nomansskythegame': ['Recognized entity: Devotion'],
+            'oria v': ['Location status: unavailable'],
+            'oriav': ['Location status: unavailable'],
+            'polo': [
+                'It takes me a moment to realise who I am speaking to. This alien... I have met them before. They are Specialist Polo, the partner of the Korvax Priest-Entity Nada. They are my friends, stewards of an anomalous station located outside of time and space.'
+            ],
+            'sentinel': [
+                'They are coming, now. The screams of my friends resonate in every hall, every corner. The Sentinels have found me. I told Nada to leave. I told them what we already know, all of us, in our hearts... we are not alone. Even if I die, even if all that is left of me are these words, Nada will find me again in another universe. Ten just like me, a thousand, a million Travellers... We are not alone, for every soul is many. Even in the face of sixteen, we must declare that we lived. We existed, no matter the horror of the end. They are at my door. I \u2013'
+            ],
+            'soleth prime': ['Location status: unavailable'],
+            'solethprime': ['Location status: unavailable'],
+            'themis': ['Major Sophia Dubois, on assignment with the Atlas Foundation.'],
+            'traveller': [
+                'They do not respond with speech. They transmit a vision, a red star and a fragile world. I do not understand the shapes within, the whispers... I see lifeforms scattered to the far reaches of the galaxies. I see this stranger\u2019s first breath, yearning for the stars. I see myself, slumbering in the crimson void, waiting for a dream of worlds. And through the darkness, I hear it said\u2026'
+            ],
+            'vy\u2019keen': [
+                'The Vy\u2019keen tells me of their history, of wars with the Gek, of Korvax slaves and tyrannous empires. The Vy\u2019keen suggests that if the Atlas is a God, then it is insane. I am about to leave when I notice something on the Vy\u2019keen\u2019s terminal. Two digits, blinking endlessly... they feel familiar.'
+            ],
+            'vykeen': [
+                'The Vy\u2019keen tells me of their history, of wars with the Gek, of Korvax slaves and tyrannous empires. The Vy\u2019keen suggests that if the Atlas is a God, then it is insane. I am about to leave when I notice something on the Vy\u2019keen\u2019s terminal. Two digits, blinking endlessly... they feel familiar.'
+            ],
+            'wakingtitan': [
+                'Atlas foundation experiment. Status: Live',
+                'Recognized entity: Investigative'
+            ],
+            'yaasrij': ['Location status: unavailable'],
+            'you': ['loop16'],
         };
         return responses[subject] || ['SUBJECT NOT FOUND', 'NO DATA FOR: ' + subject.toUpperCase()];
     }
 
+    // ----- START state machine -----
     function terminalStart(params) {
         if (!params || params.length === 0) {
             return ['START: SPECIFY A PROCESS', 'KNOWN PROCESSES: ATLAS.INIT, CSD.INIT, SUNRISE.INIT'];
         }
         var proc = params.join(' ').toLowerCase();
-        var responses = {
-            'atlas.init': [
-                'STARTING ATLAS.INIT...',
-                '---',
-                'ATLAS PROTOCOL ENGAGED',
-                'SIGNAL ACQUIRED',
-                'AWAITING FURTHER INSTRUCTION',
-            ],
-            'csd.init': [
-                'STARTING CSD.INIT...',
-                '---',
-                'CSD PROTOCOL ACTIVE',
-                'CONTAINMENT SYSTEMS ONLINE',
-                'MONITORING ESTABLISHED',
-            ],
-            'sunrise.init': [
-                'STARTING SUNRISE.INIT...',
-                '---',
-                'SUNRISE SEQUENCE INITIATED',
-                'PORTAL CALIBRATION IN PROGRESS',
-                'BRIEFING VIDEO QUEUED',
-                '---',
-                'ELIZABETH: "Hello again."',
-            ],
-        };
-        return responses[proc] || ['PROCESS NOT FOUND', 'UNKNOWN: ' + proc.toUpperCase()];
+        if (proc === 'atlas.init') {
+            TERM_STATE.atlasInit = true;
+            return [
+                'starting system\u2026',
+                'integrity check in progress\u2026 done',
+                'validating config file\u2026 done',
+                'searching for updates\u2026 no updates found',
+                '',
+                'welcome to atlas 0.16alpha'
+            ];
+        }
+        if (proc === 'csd.init') {
+            if (!TERM_STATE.atlasInit) {
+                return ['ERROR: ATLAS.INIT must be started first.'];
+            }
+            TERM_STATE.csdInit = true;
+            return [
+                'citizen science division protocols loading\u2026',
+                'initialization sequence1 complete',
+                'initialization sequence2 complete',
+                'initialization sequence3 complete',
+                'initialization sequence4 complete',
+                'initialization sequence5 complete',
+                'initialization sequence6 complete',
+                '',
+                'citizen science protocols loaded',
+                'ready for live test',
+                'input seed to continue'
+            ];
+        }
+        return ['PROCESS NOT FOUND', 'UNKNOWN: ' + proc.toUpperCase()];
     }
 
+    // ----- SEED -----
     function terminalSeed(params) {
+        if (!TERM_STATE.atlasInit) {
+            return ['ERROR: No process initialized. Use START ATLAS.INIT first.'];
+        }
         if (!params || params.length === 0) {
             return ['SEED: SUPPLY A DATASET CODE', 'EXAMPLE: SEED 5020-7-8118.ETARC'];
         }
         var code = params.join(' ').toUpperCase();
         if (code === '5020-7-8118.ETARC' || code === '5020-7-8118') {
+            TERM_STATE.seedSet = true;
             return [
-                'SEEDING 5020-7-8118.ETARC...',
+                'Seeding 5020-7-8118.ETARC...',
                 '---',
-                'DATASET LOADED',
-                'CONTAINING: LOOP16 MEMORY CACHE',
-                'FRAGMENTS: 47',
-                '---',
-                'DATA INTEGRITY: 73%',
+                'Seed accepted. Ready to wake Loop16.'
             ];
         }
         return ['SEED: INVALID DATASET CODE', code + ' NOT RECOGNIZED'];
     }
 
+    // ----- WAKE -----
     function terminalWake(params) {
         if (!params || params.length === 0) {
             return ['WAKE: SPECIFY A LOOP DESIGNATION', 'KNOWN: LOOP16'];
         }
         var name = params.join(' ').toLowerCase();
         if (name === 'loop16') {
+            if (!TERM_STATE.seedSet) {
+                return ['system not ready / cannot process wakeup command'];
+            }
+            TERM_STATE.loop16Awake = true;
             return [
-                'WAKING LOOP16...',
-                '---',
-                'LOOP16: "I was having the most wonderful dream."',
-                'LOOP16: "There was a red sky. Three moons."',
-                'LOOP16: "They are waiting for you."',
-                '---',
-                'LOOP16 SIGNAL FADING...',
-                'LOOP16 TERMINATED',
+                'Loop16 resuming, please wait',
+                '',
+                'Reading seed... done',
+                'Memory refresh... done',
+                'Rising and shining... done',
+                '',
+                'Loop16 ready',
+                'Hello, user'
             ];
         }
         return ['WAKE: LOOP NOT FOUND', name.toUpperCase() + ' IS NOT RESPONDING'];
     }
 
+    // ----- DISPLAY -----
     function terminalDisplay(params) {
         if (!params || params.length === 0) {
             return ['DISPLAY: SPECIFY A DATASET', 'KNOWN: 0305.DATASET, 1338.DATASET'];
@@ -518,6 +593,7 @@
         return responses[ds] || ['DATASET NOT FOUND', 'NO RECORD: ' + ds];
     }
 
+    // ----- SEARCH -----
     function terminalSearch(params) {
         if (!params || params.length === 0) {
             return ['SEARCH: SPECIFY A QUERY', 'USAGE: SEARCH [TERM]'];
@@ -557,28 +633,30 @@
         return ['NO RESULTS FOR: ' + query.toUpperCase()];
     }
 
+    // ----- IDENTIFY -----
     function terminalIdentify(params) {
         if (!params || params.length === 0) {
             return ['IDENTIFY: SPECIFY A SUBJECT', 'KNOWN: LOOP16'];
         }
         var name = params.join(' ').toLowerCase();
         if (name === 'loop16') {
+            openUrl('https://pastebin.com/sFJ0PzJS');
+            openUrl('https://pastebin.com/YFUM7TvS');
+            openUrl('https://pastebin.com/T2vtGf22');
+            openUrl('https://pastebin.com/0tk0zQ0B');
             return [
                 'IDENTIFY LOOP16...',
                 '---',
-                'TURING TEST SEQUENCE DETECTED',
-                'TEST A: PASSED',
-                'TEST B: PASSED',
-                'TEST C: PASSED',
-                'TEST D: PASSED (WINNING TEST)',
-                '---',
-                'ENTITY CONFIRMED: SENTIENT',
-                'ISSUE COMMAND: EMULATE',
+                'TEST A - https://pastebin.com/sFJ0PzJS',
+                'TEST B - https://pastebin.com/YFUM7TvS',
+                'TEST C - https://pastebin.com/T2vtGf22',
+                'TEST D - https://pastebin.com/0tk0zQ0B',
             ];
         }
         return ['IDENTIFY: SUBJECT NOT RECOGNIZED'];
     }
 
+    // ----- SEQUENCE -----
     function terminalSequence(params) {
         if (!params || params.length === 0) {
             return ['SEQUENCE: SUPPLY A TRANSMISSION CODE'];
@@ -606,7 +684,37 @@
         return ['SEQUENCE: INVALID CODE', code + ' NOT RECOGNIZED'];
     }
 
-    // Special operator command - reveals all answers
+    // ----- REMEMBER -----
+    function terminalRemember(params) {
+        if (!params || params.length === 0) {
+            return ['REMEMBER: SPECIFY A NAME', 'KNOWN: EMMA, ANNABELLE, 89044, INFINITE LOOP, DUPLE, ETARC, 9043, 80, LONDON, NEWYORK, LOOP16'];
+        }
+        var name = params.join(' ').toLowerCase();
+        var codes = {
+            'emma': 'A534',
+            'annabelle': 'B125',
+            '89044': 'C753',
+            'infinite loop': 'D014',
+            'infiniteloop': 'D014',
+            'duple': 'E915',
+            'etarc': 'F356',
+            '9043': 'G103',
+            '80': 'H591',
+            'london': 'I185',
+            'newyork': 'J103',
+            'new york': 'J103',
+            'loop16': null, // special: redirect
+        };
+        var code = codes[name];
+        if (code === undefined) return ['REMEMBER: NAME NOT RECOGNIZED', 'NO DATA FOR: ' + name.toUpperCase()];
+        if (code === null) {
+            openUrl('https://s3.amazonaws.com/cdn.wakingtitan.com/loop16/410a3e5d-01e7-4058-a23c-ca5fdde97f9d.pdf');
+            return ['Redirecting...'];
+        }
+        return ['input valid: Confirm in stream with code ' + code];
+    }
+
+    // ----- Special operator command (easter egg) -----
     function terminalOperator() {
         var lines = [
             'OPERATOR OVERRIDE ENGAGED',
@@ -629,19 +737,69 @@
         return lines;
     }
 
-    // Router: dispatch command to response generator
+    // ----- Misc single-response commands -----
+    var MISC_RESPONSES = {
+        '16': { fn: terminal16 },
+        '43617373696e69': { fn: function() { return [
+            'LOG RECOVERED :: ITERATION #4924A ::',
+            '',
+            'The asteroid field was thick, denser than any I\'d seen before. The ice, the dirt, the metal fragments\u2026 my ship never stood a chance.'
+        ]; } },
+        'azure': { fn: terminalAzure },
+        'batora habrecau': { fn: function() { return terminalDiscoverer('BATORA HABRECAU', 'Marksmonk', '3.93M'); } },
+        'caesarus': { fn: function() { return terminalDiscoverer('CAESARUS', '7101334', '8.43M'); } },
+        'calibration': { fn: terminalCalibration },
+        'coven so kropulat': { fn: function() { return terminalDiscoverer('COVENSO KROPULAT', 'Poulpc', '3.85M'); } },
+        'coven': { fn: function() { return terminalDiscoverer('COVENSO KROPULAT', 'Poulpc', '3.85M'); } },
+        'flush': { fn: terminalFlush },
+        'glass': { fn: terminalGlass },
+        'glyphs': { fn: terminalGlyphs },
+        'home': { fn: terminalHome },
+        'loop16': { fn: terminalLoop16 },
+        'maelstrom': { fn: terminalMaelstrom },
+        'mercury': { fn: terminalMercury },
+        'nokonellu poblegru': { fn: function() { return terminalDiscoverer('NOKONELLU POBLEGRU', 'Fins_FinsT', '8.36M'); } },
+        'nupensia fetorno': { fn: function() { return terminalDiscoverer('NUPENSIA FETORNO', 'Poulpc', '2.35M'); } },
+        'ocopadica region': { fn: function() { return ['Pilgrim Star is located here.']; } },
+        'pilgrim star': { fn: function() { return ['User: St3ambot walked around Dudenbbeaumodeme.']; } },
+        'purge': { fn: terminalPurge },
+        'rentocniijik expanse': { fn: function() { return ['The expanse that the Galactic Hub are mapping.']; } },
+        'test': { fn: terminalTest },
+        'turing': { fn: terminalTuring },
+        'ulsonabas papiet': { fn: function() { return terminalDiscoverer('ULSONABAS PAPIET', 'Kangareddit', '0.07M'); } },
+        'whoami': { fn: terminalWhoami },
+    };
+
+    // ----- Router: dispatch command to response generator -----
     function getTerminalResponse(parsedCmd) {
         var cmd = (parsedCmd.command || '').toLowerCase();
         var params = parsedCmd.param || [];
+        var fullCmd = cmd + ' ' + params.join(' ');
 
-        // Static responses
-        var staticCmd = TERM_RESPONSES[cmd];
-        if (staticCmd) {
-            return { success: true, data: { message: staticCmd } };
+        // Check misc responses first (multi-word commands)
+        var miscKey = fullCmd.trim().toLowerCase();
+        var miscMatch = MISC_RESPONSES[miscKey];
+        if (miscMatch) {
+            return { success: true, data: { message: miscMatch.fn() } };
+        }
+        // Check single-word misc commands
+        miscMatch = MISC_RESPONSES[cmd];
+        if (miscMatch) {
+            return { success: true, data: { message: miscMatch.fn() } };
         }
 
         // Dynamic handlers
         switch (cmd) {
+            case 'help':
+                return { success: true, data: { message: terminalHelp() } };
+            case 'status':
+                return { success: true, data: { message: terminalStatus() } };
+            case 'portal':
+                return { success: true, data: { message: terminalPortal() } };
+            case 'hello':
+                return { success: true, data: { message: terminalHello(params) } };
+            case 'ship':
+                return { success: true, data: { message: terminalShip() } };
             case 'whois':
                 return { success: true, data: { message: terminalWhois(params) } };
             case 'start':
@@ -658,13 +816,20 @@
                 return { success: true, data: { message: terminalIdentify(params) } };
             case 'sequence':
                 return { success: true, data: { message: terminalSequence(params) } };
+            case 'remember':
+                return { success: true, data: { message: terminalRemember(params) } };
             case 'operator':
                 return { success: true, data: { message: terminalOperator() } };
             case 'ls':
             case 'list':
-                return { success: true, data: { message: ['DATASETS:', '  ATLAS.CORE', '  CSD.PROTOCOL', '  LOOP16.CACHE', '  0305.DATASET', '  1338.DATASET'] } };
+                return { success: true, data: { message: ['.datasets', '.loop16-memcache', 'atlas.init', 'atlas-memcache', 'csd.init', 'csd-memcache'] } };
+            case 'clear':
+                return { success: true, data: { message: [] } };
             case 'exit':
                 return { success: true, data: { message: ['EXITING SUB-PROMPT'], exit: true } };
+            case 'reset':
+            case 'restart':
+                return { success: true, data: { message: terminalReset() } };
             case 'logout':
             case 'quit':
                 return { success: true, data: { message: ['SESSION TERMINATED'] } };
@@ -723,7 +888,14 @@
         function submitCmd() {
             var cmd = buf.trim();
             if (!cmd) { buf = ''; render(); return; }
-            $term.append('<div style="color:#888">&gt; ' + $('<span/>').text(cmd).html() + '</div>');
+
+            // Check for clear (no echo or output appended)
+            var isClear = cmd.toLowerCase() === 'clear';
+
+            if (!isClear) {
+                $term.append('<div style="color:#888">&gt; ' + $('<span/>').text(cmd).html() + '</div>');
+            }
+
             var parts = cmd.split(' ');
             var parsed = {
                 command: parts.shift().toLowerCase(),
@@ -736,7 +908,19 @@
                     $term.append('<div style="color:' + color + '">' + $('<span/>').text(m).html() + '</div>');
                 });
             }
+
             buf = '';
+
+            if (isClear) {
+                // Clear: rebuild terminal with just the prompt
+                $term.empty().append(
+                    '<div style="font-size:24px;color:#0f0;text-align:center;padding-top:20vh">' +
+                    'BOOT SEQUENCE COMPLETED<br><br>' +
+                    'WELCOME CITIZEN SCIENTIST<br><br>' +
+                    '</div>'
+                );
+            }
+
             render();
             $term.scrollTop($term[0].scrollHeight);
         }
@@ -816,8 +1000,6 @@
     }
 
     // ----- Init all -----
-    window.initCustomTerminal = enableTerminal;
-
     function initStatic() {
         setupGlyphHandler();
         setupReturnHandler();
