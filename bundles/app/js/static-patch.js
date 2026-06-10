@@ -121,6 +121,7 @@
     function closeForm() {
         $('#argform').fadeOut();
         $('#terminal').show();
+        enableTerminal();
         $('.form').empty();
         $('#shade').fadeOut();
         $('#viewport').stop().fadeTo(500, 1);
@@ -180,7 +181,10 @@
                         $form.fadeOut();
 
                         var $term = $('#terminal');
-                        if ($term.length) $term.show();
+                        if ($term.length) {
+                            $term.show();
+                            enableTerminal();
+                        }
 
                         setTimeout(function() {
                             var ta = $('#terminal textarea');
@@ -682,9 +686,28 @@
     }
 
     // ----- Terminal AJAX interceptor -----
+    function enableTerminal() {
+        var $term = $('#terminal');
+        if (!$term.length) return;
+
+        try {
+            var term = $term.data('terminal');
+            if (term) {
+                if (typeof term.set_enabled === 'function') term.set_enabled(true);
+                else if (typeof term.enable === 'function') term.enable();
+            }
+        } catch(e) {}
+
+        setTimeout(function() {
+            var ta = $('#terminal textarea');
+            if (ta.length) ta.focus();
+        }, 100);
+    }
+
     function setupTerminalHandler() {
-        // Intercept all /terminal AJAX calls at transport level (safety net for
-        // any remaining AJAX-based terminal calls from app.min.js)
+        // Intercept all /terminal AJAX calls at transport level
+        // The original terminal (from app.min.js) uses AJAX for each command.
+        // This transport returns local responses instead of hitting the server.
         $.ajaxTransport(function(options) {
             if (options.url === '/terminal' || options.url.indexOf('/terminal/') === 0) {
                 return {
@@ -717,51 +740,6 @@
                 };
             }
         });
-
-        // Reinitialize terminal with local handler (replaces AJAX-based one)
-        setTimeout(function() {
-            var $term = $('#terminal');
-            if (!$term.length) return;
-
-            var greeting = $term.data('intro') || 'Boot sequence completed\nWelcome Citizen Scientist';
-
-            // Destroy existing terminal instance if it exists
-            try {
-                var existing = $term.data('terminal');
-                if (existing && typeof existing.destroy === 'function') existing.destroy();
-            } catch(e) {}
-
-            $term.empty();
-            $term.terminal(
-                function(command, terminal) {
-                    if (typeof command !== 'string' || command.trim() === '') return;
-                    var parser = terminal.parser || function(str) {
-                        var parts = str.split(' ');
-                        var result = {};
-                        result.command = parts.shift().toLowerCase();
-                        result.param = [];
-                        parts.forEach(function(item) {
-                            if (item !== '' && item.indexOf('-') !== 0) {
-                                result.param.push(item.toLowerCase());
-                            }
-                        });
-                        return result;
-                    };
-                    var parsed = parser(command);
-                    var response = getTerminalResponse(parsed);
-                    if (response.success) {
-                        response.data.message.forEach(function(msg) { terminal.echo(msg); });
-                    } else {
-                        response.data.message.forEach(function(msg) { terminal.error(msg); });
-                    }
-                    terminal.echo(' ');
-                },
-                {
-                    greetings: greeting + '\n ',
-                    enabled: true
-                }
-            );
-        }, 2000);
     }
 
     // ----- Fix dynamic sigil background-image 404 -----
