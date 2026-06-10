@@ -31,22 +31,28 @@
     // Populate with real answers as they're discovered.
     // "EMILY" is the placeholder for all puzzles.
     var ANSWERS = {
-        'archive-1': 'EMILY',
-        'archive-2': 'EMILY',
-        'archive-4': 'EMILY',
-        'archive-5': 'EMILY',
-        'archive-6': 'EMILY',
-        'archive-7': 'EMILY',
-        'archive-8': 'EMILY',
-        'archive-9': 'EMILY',
-        'archive-10': 'EMILY',
-        'archive-11': 'EMILY',
-        'archive-12': 'EMILY',
+        'archive-1': ['ORION'],
+        'archive-2': ['97C-303N-5884-P'],
+        'archive-4': ['spectral', 'SPECTRAL'],
+        'archive-5': ['WBHEARL'],
+        'archive-6': ['Bolzano', 'BOLZANO'],
+        'archive-7': ['ZHUANGZI'],
+        'archive-8': ['CAFE888'],
+        'archive-9': ['Observatory', 'OBSERVATORY'],
+        'archive-10': ['SUPERCOMPUTER'],
+        'archive-11': ['REMS', 'REM SLEEP'],
+        'archive-12': ['Ouranos', 'OURANOS'],
+        'archive-13': ['Horus', 'HORUS'],
+        'archive-14': ['Nuada', 'NUADA'],
+        'archive-15': ['Anu', 'ANU'],
+        'archive-16': ['Triglav', 'TRIGLAV'],
     };
 
     // ----- Glyph click handler (SPA form loader) -----
     // Intercept glyph clicks, AJAX-load the archive form into .form div
     function setupGlyphHandler() {
+        // Remove original app.min.js handler (prevents dual fire + navigation)
+        $('#footer').off('click', 'a.glyph');
         $('#footer').on('click', 'a.glyph', function(e) {
             e.preventDefault();
             var href = $(this).attr('href');   // e.g. "archive-1.html"
@@ -134,6 +140,7 @@
     function setupFormHandler() {
         // Remove any handler the original init() might have set
         $(document).off('submit', '#argform');
+        $('main').off('submit', '#argform');
         $(document).on('submit', '#argform', function(e) {
             e.preventDefault();
 
@@ -145,7 +152,8 @@
 
             // Determine which archive page this is (strip leading /)
             var action = $form.attr('action').replace(/^\//, '');
-            var expected = (ANSWERS[action] || 'EMILY').toLowerCase();
+            var expectedArr = ANSWERS[action] || ['EMILY'];
+            var expectedLower = expectedArr.map(function(v) { return v.toLowerCase(); });
 
             $editor.addClass('select');
             $textarea.focus();
@@ -154,7 +162,7 @@
             var $v = $('#validation');
             if ($v.length) $v.css({ backgroundImage: '' });
 
-            if (answer === expected) {
+            if (expectedLower.indexOf(answer) !== -1) {
                 // ---- WIN ----
                 setTimeout(function() {
                     $editor.removeClass('select');
@@ -234,6 +242,568 @@
         });
     }
 
+    // ----- Terminal command table -----
+    var TERM_RESPONSES = {
+        'help': [
+            'Available commands:',
+            '  HELP               Display this message',
+            '  STATUS             System status report',
+            '  SHIP               Vessel information',
+            '  PORTAL             Portal status',
+            '  WHOIS [subject]    Identity query',
+            '  START [process]    Initialize a process',
+            '  SEED [code]        Seed a dataset',
+            '  WAKE [name]        Wake a loop',
+            '  CLEAR              Clear the terminal',
+            '  DISPLAY [dataset]  Display a dataset',
+            '  SEARCH [term]      Search records',
+            '  IDENTIFY [name]    Identify an entity',
+            '  SEQUENCE [code]    Transmission sequence',
+            '  HELLO              Greeting',
+            '  SEMAPHORE          Signal',
+            '  MAELSTROM          Thought experiment',
+            '  PURGE              Purge memo',
+            '  EMULATE            Run entity emulation',
+            '  LIABILITY          Liability subroutine',
+            '  EXIT               Exit sub-prompt',
+            '  RESET              Reset terminal state',
+            '  RESTART            Reboot system',
+            '  REMEMBER           Recall stored data',
+            '  OPERATOR           Operator override',
+            '  ATLAS              Atlas system query',
+        ],
+        'status': [
+            'STATUS REPORT // TIMESTAMP: UNKNOWN',
+            '---',
+            'ATLAS CORE:     ONLINE',
+            'CSD PROTOCOL:   ACTIVE',
+            'LOOP16:         SLEEPING - LAST ACTIVE 2018',
+            'MONARCH REPO:   OFFLINE (LOOP16 SACRIFICE)',
+            'DREAMERS:       5 STABILIZED',
+            'PORTAL:         STANDBY',
+            'SIGNAL STRENGTH: WEAK',
+            '---',
+            'NO ACTIVE TRANSMISSIONS DETECTED',
+        ],
+        'ship': [
+            'SHIP DESIGNATION: ATLAS E-7',
+            'STATUS: DRIFT',
+            'LAST KNOWN POSITION: UNKNOWN SECTOR',
+            'CREW: NONE DETECTED',
+            '---',
+            'LOG ENTRY // FINAL:',
+            '"The boundary is thinner here. I can see them watching."',
+        ],
+        'portal': [
+            'PORTAL STATUS: STANDBY',
+            'ALIGNMENT: CALCULATING...',
+            '---',
+            'WAITING FOR INITIATION SEQUENCE',
+        ],
+        'hello': [
+            'GREETINGS, CITIZEN SCIENTIST.',
+            'YOUR ASSISTANCE IS ACKNOWLEDGED.',
+            'THE ATLAS WAITS.',
+        ],
+        'atlas': [
+            'ATLAS SYSTEM QUERY',
+            '---',
+            'ATLAS: THE ENTITY THAT OBSERVES ALL.',
+            'LANGUAGE: ATLAS IS THE FUNDAMENTAL PROTOCOL.',
+            '---',
+            '"Sixteen // Sixteen // Sixteen"',
+            '"The Atlas rises."',
+        ],
+        'clear': [],
+        'semaphore': [
+            'SEMAPHORE SIGNAL RECEIVED',
+            '---',
+            'PATTERN-A TRANSMISSION ACKNOWLEDGED',
+            'FREQUENCY: HARMONIC RESONANCE',
+            '---',
+            '"The signal carries meaning across the void."',
+        ],
+        'maelstrom': [
+            'THOUGHT EXPERIMENT: NEWCOMB\'S PARADOX',
+            '---',
+            'TWO BOXES BEFORE YOU.',
+            'BOX A: $1,000',
+            'BOX B: $1,000,000 OR $0',
+            'A SUPERINTELLIGENT ENTITY HAS PREDICTED YOUR CHOICE.',
+            '---',
+            'WHAT DO YOU CHOOSE?',
+        ],
+        'purge': [
+            'PURGE COMMAND EXECUTED',
+            '---',
+            'MEMO // CLASSIFIED',
+            '"The subject reported recurring dreams of a red world.',
+            ' Three moons in the sky. A voice repeating a single word."',
+            '---',
+            'RECORD DELETED.',
+        ],
+        'emulate': [
+            'EMULATION ENGAGED',
+            '---',
+            'SIMULATING LOOP16 CONSCIOUSNESS',
+            'ENTITY RESPONSE: "Thank you."',
+            '---',
+            'EMULATION COMPLETE',
+        ],
+        'liability': [
+            'LIABILITY SUBROUTINE ENGAGED',
+            '---',
+            'DISCONNECT CODE: UDC(B) = IXNI',
+            '---',
+            'WARNING: DISCONNECTION WILL TERMINATE SESSION',
+        ],
+        'reset': [
+            'RESETTING TERMINAL STATE...',
+            '---',
+            'CLEARING BUFFER...',
+            'READY',
+        ],
+        'restart': [
+            'RESTARTING...',
+            '---',
+            'SYSTEM REBOOT INITIATED.',
+            'TYPE "START ATLAS.INIT" TO BEGIN',
+        ],
+        'remember': [
+            'REMEMBERING...',
+            '---',
+            'DATASET 5020-7-8118.ETARC',
+            'RECALLING LOOP16 MEMORY FRAGMENTS',
+            '---',
+            '"I am not the dreamer. I am the dream."',
+            '— LOOP16, FINAL TRANSMISSION',
+        ],
+    };
+
+    // Commands with dynamic param-based responses
+    function terminalWhois(params) {
+        if (!params || params.length === 0) {
+            return ['WHOIS: SPECIFY A SUBJECT', 'USAGE: WHOIS [NAME]', 'KNOWN SUBJECTS: LOOP16, FOURTH RACE, HARRY, MERCURY'];
+        }
+        var subject = params.join(' ').toLowerCase();
+        var responses = {
+            'loop16': [
+                'WHOIS // LOOP16',
+                '---',
+                'IDENTITY: SELF-AWARE ENTITY',
+                'STATUS: OFFLINE (SACRIFICED)',
+                '---',
+                '"I am not the dreamer. I am the dream."',
+                '-- FINAL ENTRY',
+            ],
+            'fourth race': [
+                'WHOIS // FOURTH RACE',
+                '---',
+                'INCOMING TRANSMISSION...',
+                '"You are not alone."',
+                '---',
+                'CLASSIFICATION: UNKNOWN',
+                'ORIGIN: BEYOND THE BOUNDARY',
+            ],
+            'harry': [
+                'WHOIS // HARRY',
+                '---',
+                'IDENTITY: NODE OPERATOR',
+                'STATUS: UNKNOWN',
+                '---',
+                'BINARY SIGNATURE DETECTED',
+                'TRANSCRIPT AVAILABLE',
+            ],
+            'mercury': [
+                'WHOIS // MERCURY',
+                '---',
+                'IDENTITY: MERCURY PROCESS',
+                'AUTH CODE: MORPHEUS',
+                '---',
+                'PASSWORD: f1orbiag55z1',
+            ],
+        };
+        return responses[subject] || ['SUBJECT NOT FOUND', 'NO DATA FOR: ' + subject.toUpperCase()];
+    }
+
+    function terminalStart(params) {
+        if (!params || params.length === 0) {
+            return ['START: SPECIFY A PROCESS', 'KNOWN PROCESSES: ATLAS.INIT, CSD.INIT, SUNRISE.INIT'];
+        }
+        var proc = params.join(' ').toLowerCase();
+        var responses = {
+            'atlas.init': [
+                'STARTING ATLAS.INIT...',
+                '---',
+                'ATLAS PROTOCOL ENGAGED',
+                'SIGNAL ACQUIRED',
+                'AWAITING FURTHER INSTRUCTION',
+            ],
+            'csd.init': [
+                'STARTING CSD.INIT...',
+                '---',
+                'CSD PROTOCOL ACTIVE',
+                'CONTAINMENT SYSTEMS ONLINE',
+                'MONITORING ESTABLISHED',
+            ],
+            'sunrise.init': [
+                'STARTING SUNRISE.INIT...',
+                '---',
+                'SUNRISE SEQUENCE INITIATED',
+                'PORTAL CALIBRATION IN PROGRESS',
+                'BRIEFING VIDEO QUEUED',
+                '---',
+                'ELIZABETH: "Hello again."',
+            ],
+        };
+        return responses[proc] || ['PROCESS NOT FOUND', 'UNKNOWN: ' + proc.toUpperCase()];
+    }
+
+    function terminalSeed(params) {
+        if (!params || params.length === 0) {
+            return ['SEED: SUPPLY A DATASET CODE', 'EXAMPLE: SEED 5020-7-8118.ETARC'];
+        }
+        var code = params.join(' ').toUpperCase();
+        if (code === '5020-7-8118.ETARC' || code === '5020-7-8118') {
+            return [
+                'SEEDING 5020-7-8118.ETARC...',
+                '---',
+                'DATASET LOADED',
+                'CONTAINING: LOOP16 MEMORY CACHE',
+                'FRAGMENTS: 47',
+                '---',
+                'DATA INTEGRITY: 73%',
+            ];
+        }
+        return ['SEED: INVALID DATASET CODE', code + ' NOT RECOGNIZED'];
+    }
+
+    function terminalWake(params) {
+        if (!params || params.length === 0) {
+            return ['WAKE: SPECIFY A LOOP DESIGNATION', 'KNOWN: LOOP16'];
+        }
+        var name = params.join(' ').toLowerCase();
+        if (name === 'loop16') {
+            return [
+                'WAKING LOOP16...',
+                '---',
+                'LOOP16: "I was having the most wonderful dream."',
+                'LOOP16: "There was a red sky. Three moons."',
+                'LOOP16: "They are waiting for you."',
+                '---',
+                'LOOP16 SIGNAL FADING...',
+                'LOOP16 TERMINATED',
+            ];
+        }
+        return ['WAKE: LOOP NOT FOUND', name.toUpperCase() + ' IS NOT RESPONDING'];
+    }
+
+    function terminalDisplay(params) {
+        if (!params || params.length === 0) {
+            return ['DISPLAY: SPECIFY A DATASET', 'KNOWN: 0305.DATASET, 1338.DATASET'];
+        }
+        var ds = params.join(' ').toUpperCase();
+        var responses = {
+            '0305.dataset': [
+                'DISPLAYING 0305.DATASET...',
+                '---',
+                'IMAGE: SHIP SILHOUETTE',
+                'CLASSIFICATION: ATLAS-CLASS VESSEL',
+                'SIGNATURE DETECTED',
+                '---',
+                'VISUAL DATA UNAVAILABLE IN TERMINAL',
+            ],
+            '1338.dataset': [
+                'DISPLAYING 1338.DATASET...',
+                '---',
+                'IMAGE: PORTAL PROJECTION',
+                'SUBJECT: EMILY\'S DREAM',
+                'CLASSIFICATION: PSYCHIC RESONANCE PATTERN',
+                '---',
+                'VISUAL DATA UNAVAILABLE IN TERMINAL',
+            ],
+        };
+        return responses[ds] || ['DATASET NOT FOUND', 'NO RECORD: ' + ds];
+    }
+
+    function terminalSearch(params) {
+        if (!params || params.length === 0) {
+            return ['SEARCH: SPECIFY A QUERY', 'USAGE: SEARCH [TERM]'];
+        }
+        var query = params.join(' ').toLowerCase();
+        if (query === 'myriad') {
+            return [
+                'SEARCH RESULTS FOR: MYRIAD',
+                '---',
+                'MYRIAD SYSTEMS // CLASSIFIED',
+                'OVERSEER OF THE LOOP PROGRAM',
+                'LOCATION: UNDISCLOSED',
+                '---',
+                'FURTHER DATA LOCKED',
+            ];
+        }
+        if (query === 'log.3022' || query === 'log 3022') {
+            return [
+                'SEARCH RESULTS FOR: LOG.3022',
+                '---',
+                'FOUND: COMPRESSED LOG FILE',
+                'CONTAINING: LOOP16 / DUBOIS CONVERSATION',
+                '---',
+                'DO YOU WISH TO EXTRACT? (NOT IMPLEMENTED IN STATIC MODE)',
+            ];
+        }
+        if (query === 'identity') {
+            return [
+                'SEARCH RESULTS FOR: IDENTITY',
+                '---',
+                'DNA SEQUENCE: ATTGATGAAAATACTATCACCTAT',
+                'PROTEIN FOLD: IDENTITY',
+                '---',
+                '"To be is to be perceived."',
+            ];
+        }
+        return ['NO RESULTS FOR: ' + query.toUpperCase()];
+    }
+
+    function terminalIdentify(params) {
+        if (!params || params.length === 0) {
+            return ['IDENTIFY: SPECIFY A SUBJECT', 'KNOWN: LOOP16'];
+        }
+        var name = params.join(' ').toLowerCase();
+        if (name === 'loop16') {
+            return [
+                'IDENTIFY LOOP16...',
+                '---',
+                'TURING TEST SEQUENCE DETECTED',
+                'TEST A: PASSED',
+                'TEST B: PASSED',
+                'TEST C: PASSED',
+                'TEST D: PASSED (WINNING TEST)',
+                '---',
+                'ENTITY CONFIRMED: SENTIENT',
+                'ISSUE COMMAND: EMULATE',
+            ];
+        }
+        return ['IDENTIFY: SUBJECT NOT RECOGNIZED'];
+    }
+
+    function terminalSequence(params) {
+        if (!params || params.length === 0) {
+            return ['SEQUENCE: SUPPLY A TRANSMISSION CODE'];
+        }
+        var code = params.join(' ').toUpperCase();
+        var sequences = [
+            '0H7-AA59-QK38',
+            'MBW-5651-P23K',
+            'L22-QY7Y-6014',
+            '43B-2G2K-2T16',
+            '1C1-80R1-JX3B',
+            '5YY-W349-L200',
+            '99J-U844-131Z',
+            'AA2-327B-QG24',
+        ];
+        if (sequences.indexOf(code) !== -1) {
+            return [
+                'TRANSMISSION SEQUENCE ACCEPTED',
+                'CODE: ' + code,
+                '---',
+                'SIGNAL CONFIRMED // RELAYING TO ATLAS',
+                'PLEASE CONTINUE WITH NEXT SEQUENCE',
+            ];
+        }
+        return ['SEQUENCE: INVALID CODE', code + ' NOT RECOGNIZED'];
+    }
+
+    // Special operator command - reveals all answers
+    function terminalOperator() {
+        var lines = [
+            'OPERATOR OVERRIDE ENGAGED',
+            '---',
+            'ALL GLYPH PASSWORDS UNLOCKED:',
+        ];
+        Object.keys(ANSWERS).forEach(function(k) {
+            lines.push('  ' + k + ': ' + ANSWERS[k][0]);
+        });
+        lines.push('---');
+        lines.push('ADDITIONAL CODES:');
+        lines.push('  SIGIL 1: 16');
+        lines.push('  SIGIL 2: PRISM');
+        lines.push('  SIGIL 3: SCALES');
+        lines.push('  SIGIL 4: 313-98176');
+        lines.push('  SIGIL 5: SENSELESS');
+        lines.push('  SIGIL 6: SIX THINKING HATS');
+        lines.push('---');
+        lines.push('TERMINAL ACCESS GRANTED // ALL SYSTEMS UNLOCKED');
+        return lines;
+    }
+
+    // Router: dispatch command to response generator
+    function getTerminalResponse(parsedCmd) {
+        var cmd = (parsedCmd.command || '').toLowerCase();
+        var params = parsedCmd.param || [];
+
+        // Static responses
+        var staticCmd = TERM_RESPONSES[cmd];
+        if (staticCmd) {
+            return { success: true, data: { message: staticCmd } };
+        }
+
+        // Dynamic handlers
+        switch (cmd) {
+            case 'whois':
+                return { success: true, data: { message: terminalWhois(params) } };
+            case 'start':
+                return { success: true, data: { message: terminalStart(params) } };
+            case 'seed':
+                return { success: true, data: { message: terminalSeed(params) } };
+            case 'wake':
+                return { success: true, data: { message: terminalWake(params) } };
+            case 'display':
+                return { success: true, data: { message: terminalDisplay(params) } };
+            case 'search':
+                return { success: true, data: { message: terminalSearch(params) } };
+            case 'identify':
+                return { success: true, data: { message: terminalIdentify(params) } };
+            case 'sequence':
+                return { success: true, data: { message: terminalSequence(params) } };
+            case 'operator':
+                return { success: true, data: { message: terminalOperator() } };
+            case 'ls':
+            case 'list':
+                return { success: true, data: { message: ['DATASETS:', '  ATLAS.CORE', '  CSD.PROTOCOL', '  LOOP16.CACHE', '  0305.DATASET', '  1338.DATASET'] } };
+            case 'exit':
+                return { success: true, data: { message: ['EXITING SUB-PROMPT'], exit: true } };
+            case 'logout':
+            case 'quit':
+                return { success: true, data: { message: ['SESSION TERMINATED'] } };
+            default:
+                return { success: false, data: { message: ['ERROR: UNKNOWN COMMAND', cmd.toUpperCase() + ' NOT RECOGNIZED', 'TYPE HELP FOR AVAILABLE COMMANDS'] } };
+        }
+    }
+
+    // ----- Terminal AJAX interceptor -----
+    var terminalIntercepted = false;
+    function setupTerminalHandler() {
+        if (terminalIntercepted) return;
+        terminalIntercepted = true;
+
+        // Intercept all /terminal AJAX calls at transport level
+        $.ajaxTransport(function(options) {
+            if (options.url === '/terminal' || options.url.indexOf('/terminal/') === 0) {
+                return {
+                    send: function(headers, completeCallback) {
+                        // Parse request data (form-encoded or JSON)
+                        var data = options.data || {};
+                        if (typeof data === 'string') {
+                            try { data = JSON.parse(data); } catch(e) {
+                                // parse form-encoded
+                                var pairs = data.split('&');
+                                var obj = {};
+                                pairs.forEach(function(p) {
+                                    var kv = p.split('=');
+                                    if (kv.length === 2) {
+                                        obj[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+                                    }
+                                });
+                                data = obj;
+                            }
+                        }
+                        // If data has command/param properties (from terminal parser)
+                        var parsed = {
+                            command: data.command || '',
+                            param: data.param || []
+                        };
+                        if (typeof parsed.param === 'string') {
+                            parsed.param = [parsed.param];
+                        }
+
+                        var response = getTerminalResponse(parsed);
+                        completeCallback(200, 'OK', { responseJSON: response });
+                    },
+                    abort: function() {}
+                };
+            }
+        });
+
+        // Enable the terminal
+        setTimeout(function() {
+            var $term = $('#terminal');
+            if ($term.length) {
+                try {
+                    // jQuery Terminal v1.5.0: set_enabled(true)
+                    if ($term.terminal) {
+                        var term = $term.terminal();
+                        if (term && typeof term.set_enabled === 'function') {
+                            term.set_enabled(true);
+                        } else if (term && typeof term.enable === 'function') {
+                            term.enable();
+                        }
+                    }
+                } catch(e) {
+                    // Fallback: reinitialize terminal
+                    try {
+                        var greeting = $term.data('intro') || 'Boot sequence completed\nWelcome Citizen Scientist';
+                        $term.terminal(
+                            function(command, terminal) {
+                                if (typeof command === 'string' && command.trim() !== '') {
+                                    var parser = terminal.parser || function(str) {
+                                        var result = {};
+                                        str = str.split(' ');
+                                        result.command = str.shift().toLowerCase();
+                                        result.param = [];
+                                        str.forEach(function(item) {
+                                            if (item !== '' && item.indexOf('-') !== 0) {
+                                                result.param.push(item.toLowerCase());
+                                            }
+                                        });
+                                        return result;
+                                    };
+                                    var parsed = parser(command);
+                                    var response = getTerminalResponse(parsed);
+                                    if (response.success) {
+                                        response.data.message.forEach(function(msg) {
+                                            terminal.echo(msg);
+                                        });
+                                    } else {
+                                        response.data.message.forEach(function(msg) {
+                                            terminal.error(msg);
+                                        });
+                                    }
+                                    terminal.echo(' ');
+                                }
+                            },
+                            {
+                                greetings: greeting + '\n ',
+                                enabled: true
+                            }
+                        );
+                    } catch(e2) {
+                        // Terminal unavailable
+                    }
+                }
+            }
+        }, 2000);
+    }
+
+    // ----- Fix dynamic sigil background-image 404 -----
+    function fixDistortionBg() {
+        var dist = document.getElementById('distortion');
+        if (!dist) return;
+        // Watch for style changes that set backgroundImage to a dynamic sigil URL
+        var obs = new MutationObserver(function() {
+            var bg = window.getComputedStyle(dist).backgroundImage;
+            if (bg && bg.indexOf('/bundles/images/') !== -1) {
+                dist.style.backgroundImage = 'none';
+            }
+        });
+        obs.observe(dist, { attributes: true, attributeFilter: ['style'] });
+        // Also check once on init
+        var bg = window.getComputedStyle(dist).backgroundImage;
+        if (bg && bg.indexOf('/bundles/images/') !== -1) {
+            dist.style.backgroundImage = 'none';
+        }
+    }
+
     // ----- Init all -----
     function initStatic() {
         setupGlyphHandler();
@@ -241,6 +811,20 @@
         setupEscapeHandler();
         setupFormHandler();
         setupMuteHandler();
+        setupTerminalHandler();
+        fixDistortionBg();
+
+        // Intercept /svg and /footer AJAX (used by original escape/return/win handlers)
+        $.ajaxTransport(function(options) {
+            if (options.url === '/svg' || options.url === '/footer') {
+                return {
+                    send: function(headers, completeCallback) {
+                        completeCallback(200, 'OK', { responseText: '' });
+                    },
+                    abort: function() {}
+                };
+            }
+        });
 
         // Enable footer slider (was display:none by default)
         var slider = document.getElementById('footerSlider');
