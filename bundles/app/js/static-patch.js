@@ -120,7 +120,6 @@
 
     function closeForm() {
         $('#argform').fadeOut();
-        $('#terminal').show().css('z-index', 2);
         enableTerminal();
         $('.form').empty();
         $('#shade').fadeOut();
@@ -131,10 +130,6 @@
             video.src = window.initDefaultVideo;
             video.loop = true;
         }
-        setTimeout(function() {
-            var ta = $('#terminal textarea');
-            if (ta.length) ta.focus();
-        }, 1000);
     }
 
     // ----- Form submit override (local answer checking) -----
@@ -171,26 +166,18 @@
                     $form.find('.options').fadeOut();
                     $writer.html('GRANTED').removeClass('fill empty');
 
-                    // Guard: elements may not exist on archive pages
-                    if ($v.length) $v.fadeTo(500, 1);
+                    // Show validation overlay with green hexagon
+                    if ($v.length) {
+                        $v.css({ backgroundImage: 'url(/bundles/Project/images/good.png)' });
+                        $v.fadeTo(500, 1);
+                    }
 
                     var $vp = $('#viewport');
                     if ($vp.length) $vp.stop().fadeTo(500, 1);
 
                     setTimeout(function() {
                         $form.fadeOut();
-
-                        var $term = $('#terminal');
-                        if ($term.length) {
-                            $term.show().css('z-index', 2);
-                            enableTerminal();
-                        }
-
-                        setTimeout(function() {
-                            var ta = $('#terminal textarea');
-                            if (ta.length) ta.focus();
-                        }, 1000);
-
+                        enableTerminal();
                         var $shade = $('#shade');
                         if ($shade.length) $shade.fadeOut();
 
@@ -685,78 +672,41 @@
         }
     }
 
-    // ----- Terminal AJAX interceptor -----
-    function createTerminal($term) {
-        var greeting = $term.data('intro') || 'Boot sequence completed\nWelcome Citizen Scientist';
-        $term.empty();
-        $term.terminal(
-            function(command, terminal) {
-                if (typeof command !== 'string' || command.trim() === '') return;
-                var parser = terminal.parser || function(str) {
-                    var parts = str.split(' ');
-                    var result = {};
-                    result.command = parts.shift().toLowerCase();
-                    result.param = [];
-                    parts.forEach(function(item) {
-                        if (item !== '' && item.indexOf('-') !== 0) {
-                            result.param.push(item.toLowerCase());
-                        }
-                    });
-                    return result;
-                };
-                var parsed = parser(command);
-                var response = getTerminalResponse(parsed);
-                if (response.success) {
-                    response.data.message.forEach(function(msg) { terminal.echo(msg); });
-                } else {
-                    response.data.message.forEach(function(msg) { terminal.error(msg); });
-                }
-                terminal.echo(' ');
-            },
-            {
-                greetings: greeting + '\n ',
-                enabled: true
-            }
-        );
-    }
-
+    // ----- Enable the existing jQuery Terminal instance -----
     function enableTerminal() {
         var $term = $('#terminal');
         if (!$term.length) return;
 
-        var ok = false;
+        $term.show().css('z-index', 2);
+
+        var term;
         try {
-            var term = $term.terminal();
-            if (term) {
-                if (typeof term.set_enabled === 'function') { term.set_enabled(true); ok = true; }
-                else if (typeof term.enable === 'function') { term.enable(); ok = true; }
-            }
-        } catch(e) {}
-        if (!ok) {
+            // Getter via .terminal() with no args
+            term = $term.terminal();
+        } catch(e) {
             try {
-                var term = $term.data('terminal');
-                if (term) {
-                    if (typeof term.set_enabled === 'function') { term.set_enabled(true); ok = true; }
-                    else if (typeof term.enable === 'function') { term.enable(); ok = true; }
+                // Fallback: data storage
+                term = $term.data('terminal');
+            } catch(e2) {
+                term = null;
+            }
+        }
+
+        if (term) {
+            try {
+                if (typeof term.enable === 'function') term.enable();
+                if (typeof term.resize === 'function') term.resize();
+                if (typeof term.focus === 'function') {
+                    setTimeout(function() { term.focus(); }, 100);
                 }
-            } catch(e) {}
+            } catch(e) {
+                // Silently fail
+            }
         }
-
-        // Final fallback: rebuild entirely (terminal is visible at this point)
-        if (!ok) {
-            createTerminal($term);
-        }
-
-        setTimeout(function() {
-            var ta = $('#terminal textarea');
-            if (ta.length) ta.focus();
-        }, 100);
     }
 
+    // ----- Terminal AJAX interceptor (safety net for any remaining AJAX calls) -----
     function setupTerminalHandler() {
-        // Intercept all /terminal AJAX calls at transport level
-        // The original terminal (from app.min.js) uses AJAX for each command.
-        // This transport returns local responses instead of hitting the server.
         $.ajaxTransport(function(options) {
             if (options.url === '/terminal' || options.url.indexOf('/terminal/') === 0) {
                 return {
