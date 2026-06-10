@@ -874,7 +874,7 @@
             'top': '35px',
             'left': '0',
             'width': '100%',
-            'height': 'calc(100% - 300px)',
+            'height': 'calc(100% - 115px)',
             'background': 'transparent',
             'color': '#fff',
             'font-family': '"Codystar", sans-serif',
