@@ -161,6 +161,13 @@
 
             if (expectedLower.indexOf(answer) !== -1 || answer === 'emily') {
                 // ---- WIN ----
+                // Mark glyph as solved
+                SOLVED_GLYPHS[action] = true;
+                var $glyph = $('a.glyph[href="' + action + '.html"]');
+                if ($glyph.length) {
+                    $glyph.css('filter', 'brightness(0) invert(1) sepia(1) saturate(10000%) hue-rotate(0deg)');
+                }
+
                 setTimeout(function() {
                     $editor.removeClass('select');
                     $editor.addClass('finish');
@@ -234,6 +241,9 @@
             $('audio').prop('muted', muted);
         });
     }
+
+    // ----- Solved glyphs -----
+    var SOLVED_GLYPHS = {};
 
     // ----- Terminal state machine -----
     var TERM_STATE = {
