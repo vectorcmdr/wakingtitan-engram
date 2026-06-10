@@ -72,6 +72,7 @@
                         return;
                     }
 
+                    $('html, body').css('overflow', '');
                     $('#replay-btn').fadeOut();
                     $('#shade').fadeIn();
                     $('.form').html(data).fadeIn();
@@ -531,9 +532,10 @@
         if (code === '5020-7-8118.ETARC' || code === '5020-7-8118') {
             TERM_STATE.seedSet = true;
             return [
-                'Seeding 5020-7-8118.ETARC...',
-                '---',
-                'Seed accepted. Ready to wake Loop16.'
+                'checking seed\u2026',
+                'seed validated',
+                '',
+                'warning: process hibernating, unable to continue until wakeup'
             ];
         }
         return ['SEED: INVALID DATASET CODE', code + ' NOT RECOGNIZED'];
@@ -542,7 +544,10 @@
     // ----- WAKE -----
     function terminalWake(params) {
         if (!params || params.length === 0) {
-            return ['WAKE: SPECIFY A LOOP DESIGNATION', 'KNOWN: LOOP16'];
+            if (TERM_STATE.loop16Awake) {
+                return ['Process Already Running'];
+            }
+            return ['system not ready / cannot process wakeup command'];
         }
         var name = params.join(' ').toLowerCase();
         if (name === 'loop16') {
@@ -849,6 +854,8 @@
         } catch(e) {}
         $term.removeData('terminal').removeAttr('class').empty().show();
 
+        $('html, body').css('overflow', 'hidden');
+
         $term.css({
             'z-index': '999',
             'position': 'absolute',
@@ -863,20 +870,25 @@
             'line-height': '24px',
             'padding': '20px',
             'overflow-y': 'auto',
-            'white-space': 'pre-wrap'
+            'white-space': 'pre-wrap',
+            'box-sizing': 'border-box'
         });
 
         $term.html(
             '<div style="font-size:24px;color:#0f0;text-align:center;padding-top:20vh">' +
             'BOOT SEQUENCE COMPLETED<br><br>' +
             'WELCOME CITIZEN SCIENTIST<br><br>' +
-            '<span style="color:#fff">&gt; </span><span style="color:#fff;animation:blink 1s step-end infinite">_</span>' +
             '</div>'
         );
 
         var buf = '';
+        var hasInteracted = false;
 
         function render() {
+            if (!hasInteracted && !buf.length) {
+                $term.find('.input-line').remove();
+                return;
+            }
             $term.find('.input-line').remove();
             var text = buf.length ? buf : '\u00A0';
             var $prompt = $('<div class="input-line" style="color:#fff">&gt; <span class="input-text"></span><span class="term-curs" style="color:#fff">|</span></div>');
@@ -912,13 +924,14 @@
             buf = '';
 
             if (isClear) {
-                // Clear: rebuild terminal with just the prompt
+                // Clear: rebuild terminal with just the greeting
                 $term.empty().append(
                     '<div style="font-size:24px;color:#0f0;text-align:center;padding-top:20vh">' +
                     'BOOT SEQUENCE COMPLETED<br><br>' +
                     'WELCOME CITIZEN SCIENTIST<br><br>' +
                     '</div>'
                 );
+                $term.find('> div:first-child').css('padding-top', '20vh');
             }
 
             render();
@@ -931,6 +944,12 @@
             // Don't intercept if user is focused on an input/textarea
             if ($(e.target).is('input, textarea, select, [contenteditable]')) return;
 
+            // Show prompt on first interaction
+            if (!hasInteracted) {
+                hasInteracted = true;
+                render();
+            }
+
             if (e.key === 'Enter') { e.preventDefault(); submitCmd(); return; }
             if (e.key === 'Backspace') { e.preventDefault(); buf = buf.slice(0, -1); render(); return; }
             if (e.key === 'Delete') { e.preventDefault(); return; }
@@ -941,7 +960,8 @@
             }
         });
 
-        render();
+        // Don't render prompt on init — wait for first keypress
+        // render();
     }
 
     // ----- Terminal AJAX interceptor (safety net for any remaining AJAX calls) -----
