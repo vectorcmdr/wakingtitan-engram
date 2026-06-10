@@ -866,13 +866,16 @@
 
         $('html, body').css('overflow', 'hidden');
 
+        // Hide Phase 1 hexagon when terminal is active
+        $('#hexagone').hide();
+
         $term.css({
             'position': 'absolute',
             'top': '0',
             'left': '0',
             'width': '100%',
             'height': '100%',
-            'background': 'rgba(0,0,0,0.85)',
+            'background': 'rgba(0,0,0,0.55)',
             'color': '#fff',
             'font-family': '"Codystar", sans-serif',
             'font-size': '25px',
@@ -1061,6 +1064,9 @@
         if (slider) {
             slider.style.display = 'block';
         }
+
+        // Initialize terminal on page load (matches original auto-init behavior)
+        enableTerminal();
     }
 
     // Run after DOM ready
