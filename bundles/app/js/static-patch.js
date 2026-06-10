@@ -871,23 +871,23 @@
 
         $term.css({
             'position': 'absolute',
-            'top': '0',
+            'top': '35px',
             'left': '0',
             'width': '100%',
-            'height': '100%',
+            'height': 'calc(100% - 300px)',
             'background': 'transparent',
             'color': '#fff',
             'font-family': '"Codystar", sans-serif',
             'font-size': '25px',
             'line-height': '25px',
-            'padding': '35px 30px 0',
+            'padding': '0 30px',
             'overflow-y': 'auto',
             'white-space': 'pre-wrap',
             'box-sizing': 'border-box'
         });
 
         $term.html(
-            '<div style="font-size:30px;color:#fff;text-align:center;padding-top:15vh">' +
+            '<div style="font-size:30px;color:#fff">' +
             'BOOT SEQUENCE COMPLETED<br><br>' +
             'WELCOME CITIZEN SCIENTIST<br><br>' +
             '</div>'
@@ -945,7 +945,7 @@
             if (isClear) {
                 // Clear: rebuild terminal with just the greeting
                 $term.empty().append(
-                    '<div style="font-size:30px;color:#fff;text-align:center;padding-top:15vh">' +
+                    '<div style="font-size:30px;color:#fff">' +
                     'BOOT SEQUENCE COMPLETED<br><br>' +
                     'WELCOME CITIZEN SCIENTIST<br><br>' +
                     '</div>'
