@@ -672,58 +672,98 @@
         }
     }
 
-    // ----- Recreate the terminal (destroy old, create fresh with enabled:true) -----
+    // ----- Plain HTML terminal (bypasses jQuery Terminal entirely) -----
     function enableTerminal() {
         var $term = $('#terminal');
         if (!$term.length) return;
 
-        // Grab greeting before destroying
         var intro = $term.data('intro') || 'Boot sequence completed\nWelcome Citizen Scientist';
 
-        // Destroy existing terminal instance (if any)
-        var existing;
-        try { existing = $term.data('terminal'); } catch(e) { existing = null; }
-        if (!existing) { try { existing = $term.terminal(); } catch(e) { existing = null; } }
-        if (existing && typeof existing.destroy === 'function') {
-            try { existing.destroy(); } catch(e) {}
+        // Nuke any existing jQuery Terminal instance
+        var old;
+        try { old = $term.data('terminal'); } catch(e) { old = null; }
+        if (old && typeof old.destroy === 'function') { try { old.destroy(); } catch(e) {} }
+        $term.removeData('terminal').empty().removeAttr('class').show().css({
+            'z-index': '2',
+            'background': 'transparent',
+            'color': '#0f0',
+            'font-family': '"Codystar", monospace',
+            'font-size': '25px',
+            'line-height': '25px',
+            'padding': '10px 30px',
+            'overflow-y': 'auto',
+            'white-space': 'pre-wrap',
+            'position': 'absolute',
+            'top': '35px',
+            'height': 'calc(100% - 300px)',
+            'width': '100%'
+        });
+
+        // Build terminal HTML
+        var lines = intro.split(/\n/);
+        var html = '<div id="term-output" style="min-height:100%">';
+        lines.forEach(function(l) { html += '<div>' + $('<span/>').text(l).html() + '</div>'; });
+        html += '<div><span style="color:#fff">&gt;&nbsp;</span><span id="term-input-display"></span><span id="term-cursor" style="color:#fff">|</span></div>';
+        html += '</div>';
+        $term.html(html);
+
+        // Hidden textarea for actual input
+        if (!$('#term-hidden-input').length) {
+            $('<textarea>').attr({
+                id: 'term-hidden-input',
+                autocomplete: 'off',
+                autocorrect: 'off',
+                spellcheck: 'false'
+            }).css({
+                position: 'absolute',
+                opacity: '0',
+                width: '0',
+                height: '0',
+                resize: 'none'
+            }).appendTo('body');
         }
 
-        // Clean slate
-        $term.removeData('terminal').empty().removeClass('terminal').show().css('z-index', 2);
+        var $input = $('#term-hidden-input');
+        var buf = '';
 
-        // Create fresh terminal that's enabled immediately
-        $term.terminal(function(command, t) {
-            if (!t.parser) {
-                t.parser = function(cmd) {
-                    var parts = cmd.split(' ');
-                    return {
-                        command: parts.shift().toLowerCase(),
-                        param: parts.filter(function(p) { return p.indexOf('-') !== 0; }).map(function(p) { return p.toLowerCase(); })
-                    };
-                };
+        function render() {
+            var d = buf.length ? buf : '\u00A0';
+            $('#term-input-display').text(d);
+        }
+
+        function submitCmd() {
+            var cmd = buf.trim();
+            buf = '';
+            render();
+            var $out = $('#term-output');
+            if (!cmd) { $out.append('<div>&nbsp;</div>'); $term.scrollTop($term[0].scrollHeight); return; }
+
+            var parts = cmd.split(' ');
+            var parsed = {
+                command: parts.shift().toLowerCase(),
+                param: parts.filter(function(p) { return p.indexOf('-') !== 0; }).map(function(p) { return p.toLowerCase(); })
+            };
+            var resp = getTerminalResponse(parsed);
+
+            $out.append('<div><span style="color:#fff">&gt;&nbsp;</span>' + $('<span/>').text(cmd).html() + '</div>');
+            if (resp.data && resp.data.message) {
+                resp.data.message.forEach(function(m) {
+                    var cls = resp.success ? '' : ' style="color:#c1003e"';
+                    $out.append('<div' + cls + '>' + $('<span/>').text(m).html() + '</div>');
+                });
             }
-            var parsed = t.parser(command);
-            t.pause();
-            $.ajax({
-                url: '/terminal',
-                data: parsed,
-                method: 'POST',
-                dataType: 'json',
-                success: function(r) {
-                    if (r.success && r.data && r.data.message) {
-                        r.data.message.forEach(function(m) { t.echo(m); });
-                    } else if (r.data && r.data.message) {
-                        r.data.message.forEach(function(m) { t.error(m); });
-                    }
-                    t.echo(' ');
-                    t.resume();
-                }
-            });
-        }, {
-            greetings: intro + '\n ',
-            enabled: true
+            $out.append('<div><span style="color:#fff">&gt;&nbsp;</span><span id="term-input-display"></span><span id="term-cursor" style="color:#fff">|</span></div>');
+            $term.scrollTop($term[0].scrollHeight);
+        }
+
+        $input.off('keydown.input').on('keydown.input', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); submitCmd(); return; }
+            if (e.key === 'Backspace') { e.preventDefault(); buf = buf.slice(0, -1); render(); return; }
+            if (e.key.length === 1) { e.preventDefault(); buf += e.key; render(); }
         });
-        setTimeout(function() { $term.find('textarea').focus(); }, 200);
+
+        $term.off('click.term').on('click.term', function() { $input.focus(); });
+        $input.focus();
     }
 
     // ----- Terminal AJAX interceptor (safety net for any remaining AJAX calls) -----
