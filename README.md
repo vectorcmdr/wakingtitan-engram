@@ -3,6 +3,8 @@
 
 <div align="center" ><img src="https://github.com/vectorcmdr/wakingtitan-engram/blob/main/wt.png" width="200"></div>
 
+https://wakingtitan-engram.vectorcmdr.xyz/
+
 WIP to port wakingtitan.com over to here as a mirror (so as to not rely on internet archived versions).
 
 Reconstruction of server based items is being attempted by hooking and patching - some items will be rewritten as faithfully as possible.
